@@ -49,7 +49,9 @@ http://localhost:8000
 ```
 
 ## Notes
-
+- Create 2 folders as follows:
+  1) APP (add __init__.py, main.py, caption.py)
+  2) Static (add app.js, index.html, styles.css)
 - You can switch models by changing `GEMINI_MODEL` in `.env`.
 - Inline image uploads are limited to 10 MB by default.
 - The app returns a `502` response if Gemini rejects the request, the key is invalid, or your free-tier quota is exhausted.
