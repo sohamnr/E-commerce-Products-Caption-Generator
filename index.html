@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-commerce Product Captions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <script src="/static/app.js" defer></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="min-h-screen mesh-bg text-stone-900 flex flex-col" x-data="captionApp()">
+      <nav class="w-full py-6 px-8 flex justify-between items-center border-b border-white/5 relative z-40">
+        <div class="flex items-center gap-2">
+          <div class="w-10 h-10 rounded-xl rich-gradient flex items-center justify-center shadow-lg shadow-stone-200">
+            <iconify-icon icon="lucide:camera" class="text-[#f5f1ed] text-xl"></iconify-icon>
+          </div>
+          <span class="text-xl font-black tracking-tight uppercase">CaptionAI</span>
+        </div>
+      </nav>
+
+      <main class="flex-1 flex flex-col lg:flex-row gap-8 p-6 lg:p-12 max-w-7xl mx-auto w-full">
+        <section class="w-full lg:w-1/2 flex flex-col gap-6">
+          <header>
+            <h1 class="text-4xl lg:text-5xl font-black leading-[1.1] mb-4 text-stone-900">
+              E-commerce Products
+              <br />
+              <span class="text-[#c9a876]">Captions Generator.</span>
+            </h1>
+          </header>
+
+          <form class="flex flex-col gap-6" @submit.prevent="submitUpload">
+            <div
+              class="relative group transition-all duration-300"
+              :class="hasImage ? 'opacity-100' : 'opacity-90 hover:opacity-100'"
+              @dragover.prevent="dragging = true"
+              @dragleave.prevent="dragging = false"
+              @drop.prevent="handleDrop"
+            >
+              <input
+                type="file"
+                id="file-input"
+                class="hidden"
+                accept="image/*"
+                @change="handleFileSelect"
+              />
+              <label
+                for="file-input"
+                class="block w-full rounded-3xl border-2 border-dashed glass-card p-8 sm:p-12 cursor-pointer transition-all overflow-hidden"
+                :class="uploadZoneClass"
+              >
+                <div class="flex flex-col items-center text-center space-y-4" x-show="!hasImage">
+                  <div class="w-20 h-20 rounded-2xl bg-stone-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <iconify-icon icon="lucide:upload-cloud" class="text-4xl text-[#c9a876]"></iconify-icon>
+                  </div>
+                  <div>
+                    <p class="text-xl font-bold">Drag & Drop Image</p>
+                    <p class="text-stone-400 text-sm mt-1">Supports PNG, JPG, WebP up to 10MB</p>
+                  </div>
+                  <div class="px-6 py-2 rounded-full bg-[#c9a876]/10 border border-[#c9a876]/20 text-[#8d7046] text-xs font-bold uppercase tracking-widest">
+                    Browse Files
+                  </div>
+                </div>
+
+                <div class="flex flex-col items-center text-center" x-show="hasImage">
+                  <div class="relative w-full aspect-square max-h-80 rounded-2xl overflow-hidden bg-slate-800">
+                    <img
+                      :src="previewUrl"
+                      class="w-full h-full object-contain bg-[#2d2a26]"
+                      alt="Product preview"
+                    />
+                    <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                      <span class="text-xs font-bold bg-white text-black px-4 py-2 rounded-full">Change Image</span>
+                    </div>
+                    <div class="absolute inset-0 pointer-events-none" :class="loading ? 'scanning' : ''"></div>
+                  </div>
+                  <p class="mt-4 text-stone-500 text-sm break-all" x-text="fileName"></p>
+                </div>
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              class="w-full py-5 rounded-2xl rich-gradient text-[#f5f1ed] font-black text-lg shadow-2xl shadow-[#b8937e]/30 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="!hasImage || loading"
+            >
+              <template x-if="!loading">
+                <span class="flex items-center gap-2">
+                  <iconify-icon icon="lucide:wand-2" class="text-2xl"></iconify-icon>
+                  GENERATE CAPTIONS
+                </span>
+              </template>
+              <template x-if="loading">
+                <span class="flex items-center gap-3">
+                  <svg class="animate-spin h-6 w-6 text-[#f5f1ed]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  ANALYZING PRODUCT...
+                </span>
+              </template>
+            </button>
+          </form>
+
+          <p class="min-h-6 text-sm font-medium" :class="error ? 'text-red-700' : 'text-stone-500'" x-text="status"></p>
+        </section>
+
+        <section class="w-full lg:w-1/2 flex flex-col">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xs font-bold text-stone-400 uppercase tracking-widest">JSON Output</h2>
+            <div class="flex gap-2">
+              <span class="w-3 h-3 rounded-full bg-[#c9a876]"></span>
+              <span class="w-3 h-3 rounded-full bg-[#d4af9f]"></span>
+              <span class="w-3 h-3 rounded-full bg-[#f5f1ed]"></span>
+            </div>
+          </div>
+
+          <div class="flex-1 bg-[#2d2a26] rounded-3xl p-6 sm:p-8 relative overflow-hidden flex flex-col min-h-[460px] shadow-2xl">
+            <div
+              class="absolute inset-0 flex flex-col items-center justify-center text-stone-400 space-y-4"
+              x-show="!showResult && !loading"
+            >
+              <iconify-icon icon="lucide:code" class="text-5xl opacity-20"></iconify-icon>
+              <p class="text-sm italic">Generated output will appear here</p>
+            </div>
+
+            <div
+              class="absolute inset-0 flex flex-col items-center justify-center text-[#c9a876] space-y-4"
+              x-show="loading"
+            >
+              <div class="flex gap-1">
+                <div class="w-2 h-2 rounded-full bg-purple-500 animate-bounce" style="animation-delay: 0s"></div>
+                <div class="w-2 h-2 rounded-full bg-pink-500 animate-bounce" style="animation-delay: 0.1s"></div>
+                <div class="w-2 h-2 rounded-full bg-teal-500 animate-bounce" style="animation-delay: 0.2s"></div>
+              </div>
+              <p class="text-sm font-medium animate-pulse">Synthesizing descriptive metadata...</p>
+            </div>
+
+            <div
+              class="flex-1 font-mono text-sm leading-relaxed overflow-auto"
+              x-show="showResult && !loading"
+              x-transition:enter="transition ease-out duration-500"
+              x-transition:enter-start="opacity-0 translate-y-4"
+              x-transition:enter-end="opacity-100 translate-y-0"
+            >
+              <pre class="text-stone-300 whitespace-pre-wrap" x-text="formattedJson"></pre>
+            </div>
+
+            <div class="mt-auto pt-6" x-show="showResult && !loading">
+              <button
+                type="button"
+                class="flex items-center gap-2 text-xs font-bold text-stone-500 hover:text-[#f5f1ed] transition-colors group"
+                @click="copyResult"
+              >
+                <iconify-icon icon="lucide:copy" class="group-hover:text-[#c9a876] transition-colors"></iconify-icon>
+                <span x-text="copied ? 'COPIED' : 'COPY TO CLIPBOARD'"></span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
